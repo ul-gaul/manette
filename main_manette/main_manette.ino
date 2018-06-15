@@ -1,9 +1,9 @@
 /*
- * Program used to control from a serial bus the state of relays in the 
- * avionics systems of the rocket. Green and Red LEDs are used to indicate the 
- * state of the relays, green indicating the relay is set (power on) and red 
+ * Program used to control from a serial bus the state of relays in the
+ * avionics systems of the rocket. Green and Red LEDs are used to indicate the
+ * state of the relays, green indicating the relay is set (power on) and red
  * indicating the relay is reset (power off)
- * 
+ *
  * The protocol
  */
 
@@ -13,7 +13,7 @@
 #define PIN_BUTTON_2 4
 #define PIN_BUTTON_3 5
 #define PIN_BUTTON_4 7
-#define PIN_BUTTON_5 9   // currently not used
+#define PIN_BUTTON_5 9
 #define PIN_BUTTON_6 10  // currently not used
 
 // LED related defines
@@ -36,11 +36,12 @@
 #define RELAY_ACQUISITION 0x00
 #define RELAY_DEPLOYMENT1 0x01
 #define RELAY_DEPLOYMENT2 0x02
+#define RELAY_PAYLOAD 0x03
 
 #define REPLY_TIMEOUT 100    // timeout in milliseconds
 
 // global variables
-int relay_states[3];
+int relay_states[4];
 
 
 // function declarations
@@ -88,7 +89,7 @@ void setup() {
 void loop() {
     uint8_t state;
     // probe all the buttons
-    for(uint8_t c = 0; c < 0x03; c++) {
+    for(uint8_t c = 0; c < 0x04; c++) {
         // check for button press (LOW value on button pin)
         if(!digitalRead(get_button_from_relay(c))) {
             // check current state and toggle it
@@ -154,7 +155,8 @@ uint8_t get_relay_state(uint8_t relay_number) {
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
         relay_number == RELAY_DEPLOYMENT1 ||
-        relay_number == RELAY_DEPLOYMENT2) {
+        relay_number == RELAY_DEPLOYMENT2 ||
+        relay_number == RELAY_PAYLOAD) {
         // relay number is valid, creating command
         cmd[0] = GET_RELAY_STATE;
         cmd[1] = relay_number;
@@ -169,7 +171,8 @@ uint8_t set_relay(uint8_t relay_number) {
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
         relay_number == RELAY_DEPLOYMENT1 ||
-        relay_number == RELAY_DEPLOYMENT2) {
+        relay_number == RELAY_DEPLOYMENT2 ||
+        relay_number == RELAY_PAYLOAD) {
         // relay number is valid, creating command
         cmd[0] = SET_RELAY;
         cmd[1] = relay_number;
@@ -188,7 +191,8 @@ uint8_t reset_relay(uint8_t relay_number) {
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
         relay_number == RELAY_DEPLOYMENT1 ||
-        relay_number == RELAY_DEPLOYMENT2) {
+        relay_number == RELAY_DEPLOYMENT2 ||
+        relay_number == RELAY_PAYLOAD) {
         // relay number is valid, creating command
         cmd[0] = RESET_RELAY;
         cmd[1] = relay_number;
@@ -226,6 +230,8 @@ uint8_t get_led_from_relay(uint8_t relay_number) {
         return PIN_LED_2_8;
     } else if(relay_number == 0x02) {
         return PIN_LED_3_9;
+    } else if(relay_number == 0x03) {
+        return PIN_LED_4_10;
     }
     return -1;
 }
@@ -237,6 +243,8 @@ uint8_t get_relay_from_button(uint8_t button_number) {
         return 0x01;
     } else if(button_number == PIN_BUTTON_4) {
         return 0x02;
+    } else if(button_number == PIN_BUTTON_5) {
+        return 0x03;
     }
     return -1;
 }
@@ -248,6 +256,8 @@ uint8_t get_button_from_relay(uint8_t relay_number) {
         return PIN_BUTTON_3;
     } else if(relay_number == 0x02) {
         return PIN_BUTTON_4;
+    } else if(relay_number == 0x03) {
+        return PIN_BUTTON_5;
     }
     return -1;
 }
