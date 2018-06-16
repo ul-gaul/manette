@@ -155,7 +155,7 @@ void loop() {
             }
         }
 	// wait for button release
-	while(digitalRead(get_button_from_relay(c));
+	while(digitalRead(get_button_from_relay(c)));
     }
 }
 

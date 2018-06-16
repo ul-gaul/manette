@@ -85,7 +85,7 @@ void decode_relay_command(uint8_t* cmd, uint8_t b) {
 			// send NACK (0x00)
 			Serial.write(0x00);
 		}
-		break;
+		break:
 	case WAIT_CHECKSUM:
 		r_decode_state = WAIT_COMMAND;
 		if(b == cmd[0] + cmd[1]) {
