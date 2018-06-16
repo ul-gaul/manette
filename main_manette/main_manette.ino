@@ -4,7 +4,13 @@
  * state of the relays, green indicating the relay is set (power on) and red
  * indicating the relay is reset (power off)
  *
- * The protocol
+ * The protocol used for communication is UART 8N1.
+ * First, a command byte is sent, then a data byte and finally a checksum byte
+ * The commands are GET_RELAY_STATE, SET_RELAY, RESET_RELAY
+ * The data byte is always the number of the relay to apply the command to.
+ * The slave replies with an ACK or NACK message si the command was executed,
+ * or with the state of the concerned relay in the case of a GET_RELAY_STATE.
+ *
  */
 
 #include <Arduino.h>
@@ -45,13 +51,13 @@ int relay_states[4];
 
 
 // function declarations
-uint8_t get_relay_state(uint8_t relay_number);
-uint8_t set_relay(uint8_t relay_number);
-uint8_t reset_relay(uint8_t relay_number);
-uint8_t send_command(uint8_t* cmd);
-uint8_t get_led_from_relay(uint8_t relay_number);
-uint8_t get_relay_from_button(uint8_t button_number);
-uint8_t get_button_from_relay(uint8_t relay_number);
+int8_t get_relay_state(uint8_t relay_number);
+int8_t set_relay(uint8_t relay_number);
+int8_t reset_relay(uint8_t relay_number);
+int8_t send_command(uint8_t* cmd);
+int8_t get_led_from_relay(uint8_t relay_number);
+int8_t get_relay_from_button(uint8_t button_number);
+int8_t get_button_from_relay(uint8_t relay_number);
 
 void setup() {
     // pin configuration
@@ -65,29 +71,30 @@ void setup() {
     pinMode(PIN_LED_3_9, OUTPUT);
     pinMode(PIN_LED_4_10, OUTPUT);
     pinMode(PIN_LED_5_11, OUTPUT);
-    digitalWrite(PIN_LED_1_7, HIGH);
+    digitalWrite(PIN_LED_1_7, LOW);
     digitalWrite(PIN_LED_2_8, HIGH);
-    digitalWrite(PIN_LED_3_9, HIGH);
+    digitalWrite(PIN_LED_3_9, LOW);
     digitalWrite(PIN_LED_4_10, HIGH);
-    digitalWrite(PIN_LED_5_11, HIGH);
+    digitalWrite(PIN_LED_5_11, LOW);
     // serial configuration
     Serial.begin(BAUD_RATE);
     // get current relay states
-//     relay_states[0] = get_relay_state(RELAY_ACQUISITION);
-//     relay_states[1] = get_relay_state(RELAY_DEPLOYMENT1);
-//     relay_states[2] = get_relay_state(RELAY_DEPLOYMENT2);
-//     for(int i = 0; i < 3; i++) {
-//         if(relay_states[i] != -1) {
-//             digitalWrite(get_led_from_relay(i), relay_states[i]);
-//         } else {
-//             digitalWrite(get_led_from_relay(i), LOW);
-//             relay_states[i] = 0;
-//         }
-//     }
+     relay_states[0] = get_relay_state(RELAY_ACQUISITION);
+     relay_states[1] = get_relay_state(RELAY_DEPLOYMENT1);
+     relay_states[2] = get_relay_state(RELAY_DEPLOYMENT2);
+     for(int i = 0; i < 3; i++) {
+         if(relay_states[i] != -1) {
+             digitalWrite(get_led_from_relay(i), relay_states[i]);
+         } else {
+             digitalWrite(get_led_from_relay(i), LOW);
+             relay_states[i] = 0;
+         }
+	 delay(20);
+     }
 }
 
 void loop() {
-    uint8_t state;
+    int8_t state;
     // probe all the buttons
     for(uint8_t c = 0; c < 0x04; c++) {
         // check for button press (LOW value on button pin)
@@ -124,7 +131,7 @@ void loop() {
                 }
                 continue;
             }
-            delay(100);
+	    delay(10);
             // get the state of the relay
             state = get_relay_state(c);
             // check reply and apply LED pattern if error
@@ -148,9 +155,10 @@ void loop() {
             }
         }
     }
+    delay(100);	// debounce
 }
 
-uint8_t get_relay_state(uint8_t relay_number) {
+int8_t get_relay_state(uint8_t relay_number) {
     uint8_t reply;
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
@@ -162,12 +170,12 @@ uint8_t get_relay_state(uint8_t relay_number) {
         cmd[1] = relay_number;
         cmd[2] = cmd[0] + cmd[1];
     } else {
-        return -1;
+        return -2;
     }
     return send_command(cmd);
 }
 
-uint8_t set_relay(uint8_t relay_number) {
+int8_t set_relay(uint8_t relay_number) {
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
         relay_number == RELAY_DEPLOYMENT1 ||
@@ -187,7 +195,7 @@ uint8_t set_relay(uint8_t relay_number) {
     return send_command(cmd);
 }
 
-uint8_t reset_relay(uint8_t relay_number) {
+int8_t reset_relay(uint8_t relay_number) {
     uint8_t cmd[COMMAND_LENGTH];
     if(relay_number == RELAY_ACQUISITION ||
         relay_number == RELAY_DEPLOYMENT1 ||
@@ -207,7 +215,7 @@ uint8_t reset_relay(uint8_t relay_number) {
     return send_command(cmd);
 }
 
-uint8_t send_command(uint8_t* cmd) {
+int8_t send_command(uint8_t* cmd) {
     uint8_t read;
     for(int i = 0; i < COMMAND_LENGTH; i++) {
         Serial.write(cmd[i]);
@@ -223,7 +231,7 @@ uint8_t send_command(uint8_t* cmd) {
     return -1;
 }
 
-uint8_t get_led_from_relay(uint8_t relay_number) {
+int8_t get_led_from_relay(uint8_t relay_number) {
     if(relay_number == 0x00) {
         return PIN_LED_1_7;
     } else if(relay_number == 0x01) {
@@ -236,7 +244,7 @@ uint8_t get_led_from_relay(uint8_t relay_number) {
     return -1;
 }
 
-uint8_t get_relay_from_button(uint8_t button_number) {
+int8_t get_relay_from_button(uint8_t button_number) {
     if(button_number == PIN_BUTTON_2) {
         return 0x00;
     } else if(button_number == PIN_BUTTON_3) {
@@ -249,7 +257,7 @@ uint8_t get_relay_from_button(uint8_t button_number) {
     return -1;
 }
 
-uint8_t get_button_from_relay(uint8_t relay_number) {
+int8_t get_button_from_relay(uint8_t relay_number) {
     if(relay_number == 0x00) {
         return PIN_BUTTON_2;
     } else if(relay_number == 0x01) {
