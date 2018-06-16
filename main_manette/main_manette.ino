@@ -154,8 +154,9 @@ void loop() {
                 relay_states[c] = state;
             }
         }
+	// wait for button release
+	while(digitalRead(get_button_from_relay(c));
     }
-    delay(100);	// debounce
 }
 
 int8_t get_relay_state(uint8_t relay_number) {
@@ -219,6 +220,7 @@ int8_t send_command(uint8_t* cmd) {
     uint8_t read;
     for(int i = 0; i < COMMAND_LENGTH; i++) {
         Serial.write(cmd[i]);
+	delay(5);	// give time to slave to process bytes
     }
     // wait for reply from acquisition system
     for(int i = 0; i < REPLY_TIMEOUT; i++) {

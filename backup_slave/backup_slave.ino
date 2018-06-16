@@ -104,13 +104,13 @@ void execute_relay_command(uint8_t* cmd) {
 	case GET_RELAY_STATE:
 		switch(cmd[1]) {
 		case RELAY_DEPLOY1:
-			Serial.write(digitalRead(FEEDBACK_DEPLOY1));
+			Serial.write(analogRead(FEEDBACK_DEPLOY1));
 			break;
 		case RELAY_DEPLOY2:
-			Serial.write(digitalRead(FEEDBACK_DEPLOY2));
+			Serial.write(analogRead(FEEDBACK_DEPLOY2));
 			break;
 		case RELAY_PAYLOAD:
-			Serial.write(digitalRead(FEEDBACK_PAYLOAD));
+			Serial.write(analogRead(FEEDBACK_PAYLOAD));
 			break;
 		}
 		return;
