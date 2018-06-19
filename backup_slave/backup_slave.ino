@@ -1,11 +1,15 @@
 /*
  * Backup slave used to commute the power relays in case
- * the acquisition systems cannot do it. Follow the same 
+ * the acquisition systems cannot do it. Follow the same
  * protocol so check the documentation on the acquisition
  * project for details.
  */
 
 #include "Arduino.h"
+
+// protocol used can be simplified to use only one byte, uncomment for the
+// simplified version
+#define SIMPLE_PROTOCOL
 
 #define COMMAND_LENGTH 3
 
@@ -29,6 +33,8 @@
 #define RESET_PAYLOAD 8
 #define FEEDBACK_PAYLOAD 21
 
+#define ACK 0x11
+#define NACK 0x10
 
 // enum for the relay command decoding
 enum RelayDecodeStates {
@@ -42,6 +48,7 @@ uint8_t r_command[COMMAND_LENGTH];
 // global functions
 void decode_relay_command(uint8_t* cmd, uint8_t b);
 void execute_relay_command(uint8_t* cmd);
+void decode_simple_relay_command(uint8_t b);
 
 void setup() {
 	Serial.begin(9600);
@@ -54,13 +61,23 @@ void setup() {
 	pinMode(SET_PAYLOAD, OUTPUT);
 	pinMode(RESET_PAYLOAD, OUTPUT);
 	pinMode(FEEDBACK_PAYLOAD, INPUT_PULLUP);
+	digitalWrite(SET_DEPLOY1, LOW);
+	digitalWrite(RESET_DEPLOY1, LOW);
+	digitalWrite(SET_DEPLOY2, LOW);
+	digitalWrite(RESET_DEPLOY2, LOW);
+	digitalWrite(SET_PAYLOAD, LOW);
+	digitalWrite(RESET_PAYLOAD, LOW);
 }
 
 void loop() {
 	uint8_t b;
 	if(Serial.available()) {
 		b = Serial.read();
+#ifdef SIMPLE_PROTOCOL
+		decode_simple_relay_command(b);
+#else
 		decode_relay_command(r_command, b);
+#endif
 	}
 }
 
@@ -70,20 +87,22 @@ void decode_relay_command(uint8_t* cmd, uint8_t b) {
 		if(b == GET_RELAY_STATE || b == SET_RELAY || b == RESET_RELAY) {
 			cmd[0] = b;
 			r_decode_state = WAIT_RELAY_NO;
+			Serial.write(ACK);
 		} else {
-			// send NACK (0x00)
-			Serial.write(0x00);
+			Serial.write(NACK);
+			// invalidate first byte
+			cmd[0] = 0xFF;
 		}
 		break;
 	case WAIT_RELAY_NO:
 		if(b == RELAY_DEPLOY1 || b == RELAY_DEPLOY2 || b == RELAY_PAYLOAD) {
 			cmd[1] = b;
 			r_decode_state = WAIT_CHECKSUM;
+			Serial.write(ACK);
 		} else {
 			cmd[0] = 0x00;	// invalidate current command
 			r_decode_state = WAIT_COMMAND;
-			// send NACK (0x00)
-			Serial.write(0x00);
+			Serial.write(NACK);
 		}
 		break;
 	case WAIT_CHECKSUM:
@@ -92,28 +111,69 @@ void decode_relay_command(uint8_t* cmd, uint8_t b) {
 			// command is valid
 			execute_relay_command(cmd);
 		} else {
-			// send NACK (0x00)
-			Serial.write(0x00);
+			Serial.write(NACK);
 		}
 		break;
 	}
 }
 
+void decode_simple_relay_command(uint8_t b) {
+	// byte comes as xxxxyyyy where:
+	//	xxxx is the command
+	//	yyyy is the relay number
+	uint8_t cmd[2];
+	// get command byte
+	cmd[0] = 0xF0 & b;
+	// get relay number byte
+	cmd[1] = 0x0F & b;
+	// validate command byte
+	if(!(cmd[0] == GET_RELAY_STATE || cmd[0] == SET_RELAY || cmd[0] == RESET_RELAY)) {
+		// command byte is invalid
+		Serial.write(NACK);
+		Serial.write(cmd[0]);
+		return;
+	}
+	// validate relay number
+	if(!(cmd[1] == RELAY_DEPLOY1 || cmd[1] == RELAY_DEPLOY2 || cmd[1] == RELAY_PAYLOAD)) {
+		Serial.write(NACK);
+		Serial.write(cmd[1]);
+		return;
+	}
+	// execute command
+	execute_relay_command(cmd);
+}
+
 void execute_relay_command(uint8_t* cmd) {
+	int analog_value;
 	switch(cmd[0]) {
 	case GET_RELAY_STATE:
-		switch(cmd[1]) {
-		case RELAY_DEPLOY1:
-			Serial.write(analogRead(FEEDBACK_DEPLOY1));
-			break;
-		case RELAY_DEPLOY2:
-			Serial.write(analogRead(FEEDBACK_DEPLOY2));
-			break;
-		case RELAY_PAYLOAD:
-			Serial.write(analogRead(FEEDBACK_PAYLOAD));
-			break;
+		for(int i = 0; i < 10; i++) {
+			switch(cmd[1]) {
+			case RELAY_DEPLOY1:
+				analog_value = analogRead(FEEDBACK_DEPLOY1);
+				break;
+			case RELAY_DEPLOY2:
+				analog_value = analogRead(FEEDBACK_DEPLOY2);
+				break;
+			case RELAY_PAYLOAD:
+				analog_value = analogRead(FEEDBACK_PAYLOAD);
+				break;
+			}
+			if(analog_value >= 750) {
+				Serial.write(0x01);
+				return;
+			} else if(analog_value <= 250) {
+				Serial.write(0x00);
+				return;
+			} else {
+				continue;
+			}
+			return;
 		}
-		return;
+		// no valid analog value could be read
+		Serial.write(NACK);
+		Serial.write(0x69);
+		break;
 	case SET_RELAY:
 		switch(cmd[1]) {
 		case RELAY_DEPLOY1:
@@ -129,8 +189,7 @@ void execute_relay_command(uint8_t* cmd) {
 			digitalWrite(SET_PAYLOAD, HIGH);
 			break;
 		}
-		// send ACK (0x01)
-		Serial.write(0x01);
+		Serial.write(ACK);
 		break;
 	case RESET_RELAY:
 		switch(cmd[1]) {
@@ -147,9 +206,7 @@ void execute_relay_command(uint8_t* cmd) {
 			digitalWrite(RESET_PAYLOAD, HIGH);
 			break;
 		}
-		// send ACK (0x01)
-		Serial.write(0x01);
+		Serial.write(ACK);
 		break;
 	}
 }
-
