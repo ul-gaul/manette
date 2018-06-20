@@ -185,10 +185,8 @@ uint8_t wait_button_press() {
 
 int8_t get_relay_state(uint8_t relay_number) {
 	uint8_t cmd[COMMAND_LENGTH];
-	if(relay_number == RELAY_ACQUISITION ||
-		relay_number == RELAY_DEPLOYMENT1 ||
-		relay_number == RELAY_DEPLOYMENT2 ||
-		relay_number == RELAY_PAYLOAD) {
+	if(relay_number == RELAY_DEPLOYMENT1 ||
+		relay_number == RELAY_DEPLOYMENT2) {
 		// relay number is valid, creating command
 		cmd[0] = GET_RELAY_STATE;
 		cmd[1] = relay_number;
@@ -201,10 +199,8 @@ int8_t get_relay_state(uint8_t relay_number) {
 
 int8_t set_relay(uint8_t relay_number) {
 	uint8_t cmd[COMMAND_LENGTH];
-	if(relay_number == RELAY_ACQUISITION ||
-		relay_number == RELAY_DEPLOYMENT1 ||
-		relay_number == RELAY_DEPLOYMENT2 ||
-		relay_number == RELAY_PAYLOAD) {
+	if(relay_number == RELAY_DEPLOYMENT1 ||
+		relay_number == RELAY_DEPLOYMENT2) {
 		// relay number is valid, creating command
 		cmd[0] = SET_RELAY;
 		cmd[1] = relay_number;
@@ -221,10 +217,8 @@ int8_t set_relay(uint8_t relay_number) {
 
 int8_t reset_relay(uint8_t relay_number) {
 	uint8_t cmd[COMMAND_LENGTH];
-	if(relay_number == RELAY_ACQUISITION ||
-		relay_number == RELAY_DEPLOYMENT1 ||
-		relay_number == RELAY_DEPLOYMENT2 ||
-		relay_number == RELAY_PAYLOAD) {
+	if(relay_number == RELAY_DEPLOYMENT1 ||
+		relay_number == RELAY_DEPLOYMENT2) {
 		// relay number is valid, creating command
 		cmd[0] = RESET_RELAY;
 		cmd[1] = relay_number;

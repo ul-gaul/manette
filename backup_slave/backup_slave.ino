@@ -159,8 +159,6 @@ void execute_relay_command(uint8_t* cmd) {
 				analog_value = analogRead(FEEDBACK_PAYLOAD);
 				break;
 			}
-			analog_value = analogRead(FEEDBACK_DEPLOY1);
-
 			if(analog_value >= 400) {
 				Serial.write(0x01);
 				// Serial.print(analog_value);
