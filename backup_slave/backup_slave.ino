@@ -23,15 +23,15 @@
 
 #define SET_DEPLOY1 12
 #define RESET_DEPLOY1 11
-#define FEEDBACK_DEPLOY1 23
+#define FEEDBACK_DEPLOY1 A0
 
 #define SET_DEPLOY2 10
 #define RESET_DEPLOY2 9
-#define FEEDBACK_DEPLOY2 22
+#define FEEDBACK_DEPLOY2 A1
 
 #define SET_PAYLOAD 7
 #define RESET_PAYLOAD 8
-#define FEEDBACK_PAYLOAD 21
+#define FEEDBACK_PAYLOAD A2
 
 #define ACK 0x11
 #define NACK 0x10
@@ -54,13 +54,13 @@ void setup() {
 	Serial.begin(9600);
 	pinMode(SET_DEPLOY1, OUTPUT);
 	pinMode(RESET_DEPLOY1, OUTPUT);
-	pinMode(FEEDBACK_DEPLOY1, INPUT_PULLUP);
+	// pinMode(FEEDBACK_DEPLOY1, INPUT);
 	pinMode(SET_DEPLOY2, OUTPUT);
 	pinMode(RESET_DEPLOY2, OUTPUT);
-	pinMode(FEEDBACK_DEPLOY2, INPUT_PULLUP);
+	// pinMode(FEEDBACK_DEPLOY2, INPUT);
 	pinMode(SET_PAYLOAD, OUTPUT);
 	pinMode(RESET_PAYLOAD, OUTPUT);
-	pinMode(FEEDBACK_PAYLOAD, INPUT_PULLUP);
+	// pinMode(FEEDBACK_PAYLOAD, INPUT);
 	digitalWrite(SET_DEPLOY1, LOW);
 	digitalWrite(RESET_DEPLOY1, LOW);
 	digitalWrite(SET_DEPLOY2, LOW);
@@ -159,13 +159,18 @@ void execute_relay_command(uint8_t* cmd) {
 				analog_value = analogRead(FEEDBACK_PAYLOAD);
 				break;
 			}
-			if(analog_value >= 750) {
+			analog_value = analogRead(FEEDBACK_DEPLOY1);
+
+			if(analog_value >= 400) {
 				Serial.write(0x01);
+				// Serial.print(analog_value);
 				return;
-			} else if(analog_value <= 250) {
+			} else if(analog_value <= 100) {
 				Serial.write(0x00);
+				// Serial.print(analog_value);
 				return;
 			} else {
+				delay(10);
 				continue;
 			}
 			return;
@@ -177,16 +182,30 @@ void execute_relay_command(uint8_t* cmd) {
 	case SET_RELAY:
 		switch(cmd[1]) {
 		case RELAY_DEPLOY1:
+			// digitalWrite(RESET_DEPLOY1, LOW);
+			// digitalWrite(SET_DEPLOY1, HIGH);
+			// delay(50);
+			// digitalWrite(SET_DEPLOY1, LOW);
+			digitalWrite(SET_DEPLOY1, LOW);
+			digitalWrite(RESET_DEPLOY1, HIGH);
+			delay(50);
 			digitalWrite(RESET_DEPLOY1, LOW);
-			digitalWrite(SET_DEPLOY1, HIGH);
 			break;
 		case RELAY_DEPLOY2:
+			// digitalWrite(RESET_DEPLOY2, LOW);
+			// digitalWrite(SET_DEPLOY2, HIGH);
+			// delay(50);
+			// digitalWrite(SET_DEPLOY2, LOW);
+			digitalWrite(SET_DEPLOY2, LOW);
+			digitalWrite(RESET_DEPLOY2, HIGH);
+			delay(50);
 			digitalWrite(RESET_DEPLOY2, LOW);
-			digitalWrite(SET_DEPLOY2, HIGH);
 			break;
 		case RELAY_PAYLOAD:
 			digitalWrite(RESET_PAYLOAD, LOW);
 			digitalWrite(SET_PAYLOAD, HIGH);
+			delay(50);
+			digitalWrite(SET_PAYLOAD, LOW);
 			break;
 		}
 		Serial.write(ACK);
@@ -194,16 +213,30 @@ void execute_relay_command(uint8_t* cmd) {
 	case RESET_RELAY:
 		switch(cmd[1]) {
 		case RELAY_DEPLOY1:
+			// digitalWrite(SET_DEPLOY1, LOW);
+			// digitalWrite(RESET_DEPLOY1, HIGH);
+			// delay(50);
+			// digitalWrite(RESET_DEPLOY1, LOW);
+			digitalWrite(RESET_DEPLOY1, LOW);
+			digitalWrite(SET_DEPLOY1, HIGH);
+			delay(50);
 			digitalWrite(SET_DEPLOY1, LOW);
-			digitalWrite(RESET_DEPLOY1, HIGH);
 			break;
 		case RELAY_DEPLOY2:
+			// digitalWrite(SET_DEPLOY2, LOW);
+			// digitalWrite(RESET_DEPLOY2, HIGH);
+			// delay(50);
+			// digitalWrite(RESET_DEPLOY2, LOW);
+			digitalWrite(RESET_DEPLOY2, LOW);
+			digitalWrite(SET_DEPLOY2, HIGH);
+			delay(50);
 			digitalWrite(SET_DEPLOY2, LOW);
-			digitalWrite(RESET_DEPLOY2, HIGH);
 			break;
 		case RELAY_PAYLOAD:
 			digitalWrite(SET_PAYLOAD, LOW);
 			digitalWrite(RESET_PAYLOAD, HIGH);
+			delay(50);
+			digitalWrite(RESET_PAYLOAD, LOW);
 			break;
 		}
 		Serial.write(ACK);

@@ -81,25 +81,15 @@ void setup() {
 	pinMode(PIN_LED_4_10, OUTPUT);
 	pinMode(PIN_LED_5_11, OUTPUT);
 	digitalWrite(PIN_LED_1_7, LOW);
-	digitalWrite(PIN_LED_2_8, HIGH);
+	digitalWrite(PIN_LED_2_8, LOW);
 	digitalWrite(PIN_LED_3_9, LOW);
-	digitalWrite(PIN_LED_4_10, HIGH);
+	digitalWrite(PIN_LED_4_10, LOW);
 	digitalWrite(PIN_LED_5_11, LOW);
 	// serial configuration
 	Serial.begin(BAUD_RATE);
-	// get current relay states
-//	 relay_states[0] = get_relay_state(RELAY_ACQUISITION);
-//	relay_states[1] = get_relay_state(RELAY_DEPLOYMENT1);
-//	 relay_states[2] = get_relay_state(RELAY_DEPLOYMENT2);
-//	 for(int i = 0; i < 3; i++) {
-//		 if(relay_states[i] != -1) {
-//			 digitalWrite(get_led_from_relay(i), relay_states[i]);
-//		 } else {
-//			 digitalWrite(get_led_from_relay(i), LOW);
-//			 relay_states[i] = 0;
-//		 }
-//	 delay(20);
-//	 }
+	for(int i = 0; i < 4; i++) {
+		relay_states[i] = 0;
+	}
 }
 
 void loop() {
@@ -123,6 +113,7 @@ void loop() {
 				digitalWrite(get_led_from_relay(c), LOW);
 			}
 			delay(100);
+			digitalWrite(get_led_from_relay(c), relay_states[c]);
 		}
 		return;
 	} else if (state == NACK) {
@@ -134,10 +125,11 @@ void loop() {
 				digitalWrite(get_led_from_relay(c), LOW);
 			}
 			delay(250);
+			digitalWrite(get_led_from_relay(c), relay_states[c]);
 		}
 		return;
 	}
-	delay(10);
+	delay(500);
 	// get the state of the relay
 	state = get_relay_state(c);
 	// check reply and apply LED pattern if error
@@ -150,6 +142,7 @@ void loop() {
 				digitalWrite(get_led_from_relay(c), LOW);
 			}
 			delay(100);
+			digitalWrite(get_led_from_relay(c), relay_states[c]);
 		}
 	} else {
 		if(state == 0x01) {
